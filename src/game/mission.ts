@@ -1,0 +1,148 @@
+export interface Mission {
+  id: string;
+  title: string;
+  briefing: string;
+  grid: string[];
+  energy: number;
+  allowed: string[];
+  starter: string;
+  need: { collect?: number; reachTerminal?: boolean };
+  hint: string;
+  unlock?: string;
+  maxSteps?: number;
+}
+export const MISSIONS: Mission[] = [
+  {
+    id: "01",
+    title: "Wake Up",
+    briefing: "Reach the terminal.",
+    grid: ["R...T"],
+    energy: 100,
+    allowed: ["seq"],
+    starter: "moveRight();\nmoveRight();\nmoveRight();\nmoveRight();",
+    need: { reachTerminal: true },
+    hint: "Call moveRight() 4 times.",
+    maxSteps: 10,
+  },
+  {
+    id: "02",
+    title: "First Signal",
+    briefing: "Reach the crystal.",
+    grid: ["R....", ".....", "....*"],
+    energy: 100,
+    allowed: ["seq"],
+    starter: "// reach the crystal\n",
+    need: {},
+    hint: "Sequence moveRight/moveDown.",
+    maxSteps: 20,
+  },
+  {
+    id: "03",
+    title: "Harvest",
+    briefing: "Move to crystal and collect().",
+    grid: ["R..*."],
+    energy: 100,
+    allowed: ["seq"],
+    starter: "moveRight();\nmoveRight();\nmoveRight();\ncollect();",
+    need: { collect: 1 },
+    hint: "End on crystal then collect().",
+    maxSteps: 20,
+  },
+  {
+    id: "04",
+    title: "Long Path",
+    briefing: "Repetitive path. Variables help.",
+    grid: ["R.......*"],
+    energy: 100,
+    allowed: ["seq", "vars"],
+    starter: "let steps = 8;\n",
+    need: { collect: 1 },
+    hint: "Try let + moveRight().",
+    unlock: "Variables",
+    maxSteps: 20,
+  },
+  {
+    id: "05",
+    title: "Energy Check",
+    briefing: "Movement consumes energy. Read energy.",
+    grid: ["R...*..."],
+    energy: 5,
+    allowed: ["seq", "vars"],
+    starter: "// watch energy\n",
+    need: { collect: 1 },
+    hint: "You have 5 energy. Go direct.",
+    maxSteps: 10,
+  },
+  {
+    id: "06",
+    title: "The Gate",
+    briefing: "Gate opens when condition met.",
+    grid: ["R.D.*"],
+    energy: 100,
+    allowed: ["seq", "vars", "cond"],
+    starter: "if (energy > 0) {\n  moveRight();\n}\n",
+    need: { collect: 1 },
+    hint: "Wrap 4x moveRight() + collect() inside if (energy > 0). Try sense() to see tiles.",
+    unlock: "Conditions",
+    maxSteps: 20,
+  },
+  {
+    id: "07",
+    title: "Endless Hall",
+    briefing: "Large repeated path. Loops win.",
+    grid: ["R...........*"],
+    energy: 100,
+    allowed: ["seq", "vars", "cond", "loops"],
+    starter: "for (let i=0;i<12;i++) {\n  moveRight();\n}\ncollect();",
+    need: { collect: 1 },
+    hint: "for loop 12x then collect.",
+    unlock: "Loops",
+    maxSteps: 30,
+  },
+  {
+    id: "08",
+    title: "Repair Routine",
+    briefing: "Same sequence repeats. Make a function.",
+    grid: ["R.*.*."],
+    energy: 100,
+    allowed: ["seq", "vars", "cond", "loops", "funcs"],
+    starter:
+      "function collectRow() {\n  moveRight();\n  moveRight();\n  collect();\n}\ncollectRow();",
+    need: { collect: 2 },
+    hint: "Call collectRow() twice with moves.",
+    unlock: "Functions",
+    maxSteps: 30,
+  },
+  {
+    id: "09",
+    title: "Multiple Targets",
+    briefing: "Several crystals. Arrays help.",
+    grid: ["R.*.*.*"],
+    energy: 100,
+    allowed: ["seq", "vars", "cond", "loops", "funcs", "arrays"],
+    starter: "// collect all 3\n",
+    need: { collect: 3 },
+    hint: "Loop + collect each.",
+    unlock: "Arrays",
+    maxSteps: 40,
+  },
+  {
+    id: "10",
+    title: "First Automation",
+    briefing: "Reusable program does full task.",
+    grid: ["R..*..*."],
+    energy: 100,
+    allowed: ["seq", "vars", "cond", "loops", "funcs", "arrays"],
+    starter: "function sweep() {\n  moveRight();\n}\n",
+    need: { collect: 2 },
+    hint: "Write sweep() that collects both.",
+    maxSteps: 40,
+  },
+];
+export const UNLOCK_AFTER: Record<string, string> = {
+  "04": "Variables",
+  "06": "Conditions",
+  "07": "Loops",
+  "08": "Functions",
+  "09": "Arrays",
+};

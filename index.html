@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NULL//WORLD</title>
+<link rel="stylesheet" href="/src/style.css"/>
+</head><body>
+<header><span class="logo">NULL//WORLD</span>
+<span id="missionTabs"></span>
+<span class="controls">
+<button id="btnRun">▶ RUN</button>
+<button id="btnStop">⏹ STOP</button>
+<button id="btnReset">↻ RESET</button>
+<label>speed <input id="speed" type="range" min="0.5" max="4" step="0.5" value="1"/></label>
+<span id="energy"></span>
+</span></header>
+<main>
+<section class="worldWrap"><canvas id="world" width="480" height="360"></canvas>
+<div id="objective"></div></section>
+<section class="codeWrap">
+<div class="edHead"><span id="missionTitle"></span><span id="unlock"></span></div>
+<div class="edBody"><pre id="lines"></pre><div class="edArea"><pre id="hl" aria-hidden="true"></pre><textarea id="editor" spellcheck="false"></textarea></div></div>
+<div id="console" class="console"></div>
+<div id="win" class="win hidden"></div>
+</section></main>
+<script type="module" src="/src/main.ts"></script>
+</body></html>
