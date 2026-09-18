@@ -1,8 +1,8 @@
-import type { Mission } from "../game/mission.js";
+import type { Mission } from "../manager/types.js";
 export function renderObjective(
-  el: HTMLElement,
-  m: Mission,
+  element: HTMLElement,
+  mission: Mission,
   unlocked: string[],
 ) {
-  el.innerHTML = `<b>${m.id} — ${m.title}</b><br/>${m.briefing}<br/><i>Hint: ${m.hint}</i><br/>Unlocked: ${unlocked.join(", ") || "commands"}`;
+  element.innerHTML = `<b>${mission.id} — ${mission.title}</b><br/>${mission.briefing}<br/><i>Hint: ${mission.hint}</i><br/>Unlocked: ${unlocked.join(", ") || "commands"}`;
 }

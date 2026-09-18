@@ -1,34 +1,37 @@
-import { MISSIONS } from "../game/mission.js";
-const KEY = "nullworld-save";
-export function loadSave(): { completed: string[] } {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) || '{"completed":[]}');
-  } catch {
-    return { completed: [] };
-  }
-}
-export function saveDone(id: string) {
-  const s = loadSave();
-  if (!s.completed.includes(id)) {
-    s.completed.push(id);
-    localStorage.setItem(KEY, JSON.stringify(s));
-  }
-}
+import { MISSIONS } from "../manager/missions.js";
 export function renderTabs(
-  el: HTMLElement,
-  cur: string,
-  done: string[],
-  go: (id: string) => void,
+  element: HTMLElement,
+  currentId: string,
+  completedIds: string[],
+  onSelect: (id: string) => void,
 ) {
-  void cur;
-  el.innerHTML = "";
-  MISSIONS.forEach((m, i) => {
-    const locked = i > 0 && !done.includes(MISSIONS[i - 1].id);
-    const b = document.createElement("button");
-    b.textContent = `${m.id}${done.includes(m.id) ? " ✓" : ""}`;
-    b.disabled = locked;
-    b.title = m.title;
-    b.onclick = () => go(m.id);
-    el.appendChild(b);
+  void currentId;
+  element.innerHTML = "";
+  MISSIONS.forEach((mission, index) => {
+    const locked = index > 0 && !completedIds.includes(MISSIONS[index - 1].id);
+    const button = document.createElement("button");
+    button.textContent = `${mission.id}${completedIds.includes(mission.id) ? " ✓" : ""}`;
+    button.disabled = locked;
+    button.title = mission.title;
+    button.onclick = () => onSelect(mission.id);
+    element.appendChild(button);
   });
+}
+export function renderEnergy(element: HTMLElement, energyValue: number) {
+  element.textContent = `⚡${energyValue}`;
+}
+export function showWin(
+  element: HTMLElement,
+  missionTitle: string,
+  unlockedConcept: string | undefined,
+  onNext: () => void,
+  onReplay: () => void,
+) {
+  element.classList.remove("hidden");
+  element.innerHTML = `<div style="background:#0d1330;padding:24px;border-radius:12px;text-align:center"><h2>SUCCESS ✓</h2><p>${missionTitle} complete</p>${unlockedConcept ? `<p>🔓 Unlocked: ${unlockedConcept}</p>` : ""}<button id="wNext">NEXT →</button> <button id="wRe">REPLAY</button></div>`;
+  (document.getElementById("wNext") as HTMLButtonElement).onclick = onNext;
+  (document.getElementById("wRe") as HTMLButtonElement).onclick = onReplay;
+}
+export function hideWin(element: HTMLElement) {
+  element.classList.add("hidden");
 }

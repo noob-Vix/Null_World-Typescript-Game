@@ -1,16 +1,4 @@
-export interface Mission {
-  id: string;
-  title: string;
-  briefing: string;
-  grid: string[];
-  energy: number;
-  allowed: string[];
-  starter: string;
-  need: { collect?: number; reachTerminal?: boolean };
-  hint: string;
-  unlock?: string;
-  maxSteps?: number;
-}
+import type { Mission } from "./types.js";
 export const MISSIONS: Mission[] = [
   {
     id: "01",
@@ -139,10 +127,3 @@ export const MISSIONS: Mission[] = [
     maxSteps: 40,
   },
 ];
-export const UNLOCK_AFTER: Record<string, string> = {
-  "04": "Variables",
-  "06": "Conditions",
-  "07": "Loops",
-  "08": "Functions",
-  "09": "Arrays",
-};

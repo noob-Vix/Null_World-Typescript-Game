@@ -1,144 +1,164 @@
-import { parseGrid, step, draw, type Action } from "./game/world.js";
-import { mkPlayer } from "./game/player.js";
-import { MISSIONS, UNLOCK_AFTER } from "./game/mission.js";
-import { runCode } from "./scripting/executor.js";
-import { validate } from "./scripting/validator.js";
+import { parseGrid } from "./world/parse.js";
+import { loadSave, nextMission, saveDone, unlockFor } from "./manager/progression.js";
+import { render } from "./world/render.js";
+import { step } from "./world/step.js";
+import { Tile } from "./world/tile.js";
+import { mkPlayer } from "./player/player.js";
+import { MISSIONS } from "./manager/missions.js";
+import type { Action } from "./commands/types.js";
+import { runCode } from "./commands/executor.js";
+import { validate } from "./commands/validator.js";
 import { bindEditor } from "./ui/editor.js";
 import { renderObjective } from "./ui/objective.js";
-import { loadSave, saveDone, renderTabs } from "./ui/hud.js";
+import {
+  hideWin,
+  renderEnergy,
+  renderTabs,
+  showWin,
+} from "./ui/hud.js";
 
 export function boot() {
-  const cv = document.getElementById("world") as HTMLCanvasElement;
-  const ctx = cv.getContext("2d")!;
-  const ta = document.getElementById("editor") as HTMLTextAreaElement;
-  const pre = document.getElementById("lines") as HTMLElement;
-  const hl = document.getElementById("hl") as HTMLElement;
-  const con = document.getElementById("console") as HTMLElement;
-  const obj = document.getElementById("objective") as HTMLElement;
-  const tabs = document.getElementById("missionTabs") as HTMLElement;
-  const win = document.getElementById("win") as HTMLElement;
-  const title = document.getElementById("missionTitle") as HTMLElement;
-  const unlockEl = document.getElementById("unlock") as HTMLElement;
-  const ed = bindEditor(ta, pre, hl, con);
-  let cur = MISSIONS[0];
-  let worldState = parseGrid(cur.grid);
-  let p = mkPlayer(worldState.start.x, worldState.start.y, cur.energy);
+  const canvas = document.getElementById("world") as HTMLCanvasElement;
+  const ctx = canvas.getContext("2d")!;
+  const codeInput = document.getElementById("editor") as HTMLTextAreaElement;
+  const lineNumbers = document.getElementById("lines") as HTMLElement;
+  const highlightLayer = document.getElementById("hl") as HTMLElement;
+  const consolePane = document.getElementById("console") as HTMLElement;
+  const objectivePane = document.getElementById("objective") as HTMLElement;
+  const missionTabs = document.getElementById("missionTabs") as HTMLElement;
+  const winOverlay = document.getElementById("win") as HTMLElement;
+  const titleLabel = document.getElementById("missionTitle") as HTMLElement;
+  const unlockBadge = document.getElementById("unlock") as HTMLElement;
+  const speedSlider = document.getElementById("speed") as HTMLInputElement;
+  const energyBadge = document.getElementById("energy") as HTMLElement;
+  const editor = bindEditor(codeInput, lineNumbers, highlightLayer, consolePane);
+  let currentMission = MISSIONS[0];
+  let worldState = parseGrid(currentMission.grid);
+  let player = mkPlayer(
+    worldState.start.x,
+    worldState.start.y,
+    currentMission.energy,
+  );
   let playing = false;
-  let q: Action[] = [];
-  let qi = 0;
-  let last = 0;
-  let acc = 0;
-  const speed = document.getElementById("speed") as HTMLInputElement;
-  const energyEl = document.getElementById("energy") as HTMLElement;
-  const showEnergy = () => {
-    energyEl.textContent = `⚡${p.energy}`;
-  };
+  let queue: Action[] = [];
+  let queueIndex = 0;
+  let lastFrameTime = 0;
+  let accumulatedMs = 0;
 
   function load(id: string) {
-    cur = MISSIONS.find((m) => m.id === id)!;
-    worldState = parseGrid(cur.grid);
-    p = mkPlayer(worldState.start.x, worldState.start.y, cur.energy);
-    ta.value = cur.starter;
-    ta.dispatchEvent(new Event("input"));
-    ed.clear();
-    ed.log("> " + cur.title + ": " + cur.briefing);
-    title.textContent = cur.id + " — " + cur.title;
-    const done = loadSave().completed;
-    unlockEl.textContent =
-      (cur.unlock ?? UNLOCK_AFTER[cur.id])
-        ? `🔓 ${cur.unlock ?? UNLOCK_AFTER[cur.id]}`
-        : "";
-    renderObjective(obj, cur, done);
-    renderTabs(tabs, cur.id, done, (nid) => load(nid));
-    win.classList.add("hidden");
+    currentMission = MISSIONS.find((mission) => mission.id === id)!;
+    worldState = parseGrid(currentMission.grid);
+    player = mkPlayer(
+      worldState.start.x,
+      worldState.start.y,
+      currentMission.energy,
+    );
+    codeInput.value = currentMission.starter;
+    codeInput.dispatchEvent(new Event("input"));
+    editor.clear();
+    editor.log("> " + currentMission.title + ": " + currentMission.briefing);
+    titleLabel.textContent = currentMission.id + " — " + currentMission.title;
+    const completedIds = loadSave().completed;
+    const unlockName = unlockFor(currentMission);
+    unlockBadge.textContent = unlockName ? `🔓 ${unlockName}` : "";
+    renderObjective(objectivePane, currentMission, completedIds);
+    renderTabs(missionTabs, currentMission.id, completedIds, (nextId) =>
+      load(nextId),
+    );
+    hideWin(winOverlay);
     playing = false;
-    q = [];
-    qi = 0;
-    showEnergy();
+    queue = [];
+    queueIndex = 0;
+    renderEnergy(energyBadge, player.energy);
   }
   (document.getElementById("btnRun") as HTMLButtonElement).onclick = () => {
     // Fresh state every RUN: a retry must behave exactly like the first
     // attempt, otherwise the robot starts mid-level and correct code fails.
-    const code = ta.value;
-    load(cur.id);
-    ta.value = code;
-    ta.dispatchEvent(new Event("input"));
-    ed.clear();
-    acc = 0;
-    const v = validate(ta.value, cur);
-    if (!v.ok) {
-      ed.log("ERR: " + v.error);
+    const code = codeInput.value;
+    load(currentMission.id);
+    codeInput.value = code;
+    codeInput.dispatchEvent(new Event("input"));
+    editor.clear();
+    accumulatedMs = 0;
+    const validation = validate(codeInput.value, currentMission);
+    if (!validation.ok) {
+      editor.log("ERR: " + validation.error);
       return;
     }
-    const r = runCode(ta.value, worldState.world, p);
-    if (r.error) {
-      ed.log("ERR: " + r.error + (r.line ? ` (line ${r.line})` : ""));
-      ed.setError(r.line);
+    const result = runCode(codeInput.value, worldState.world, player);
+    if (result.error) {
+      editor.log(
+        "ERR: " + result.error + (result.line ? ` (line ${result.line})` : ""),
+      );
+      editor.setError(result.line);
     }
-    q = r.actions;
-    qi = 0;
+    queue = result.actions;
+    queueIndex = 0;
     playing = true;
-    ed.log(`> running ${q.length} steps…`);
+    editor.log(`> running ${queue.length} steps…`);
   };
   (document.getElementById("btnStop") as HTMLButtonElement).onclick = () => {
     playing = false;
-    ed.log("■ stopped");
+    editor.log("■ stopped");
   };
   (document.getElementById("btnReset") as HTMLButtonElement).onclick = () =>
-    load(cur.id);
-  
+    load(currentMission.id);
+
   function checkWin(): boolean {
-    const onTile = worldState.world.tiles[p.y]?.[p.x];
-    if (cur.need.reachTerminal) return onTile === 3 || p.collected > 0;
-    if (cur.need.collect) return p.collected >= (cur.need.collect || 0);
-    return onTile === 2 || onTile === 3 || p.collected > 0;
+    const standingOn = worldState.world.tiles[player.y]?.[player.x];
+    if (currentMission.need.reachTerminal)
+      return standingOn === Tile.Terminal || player.collected > 0;
+    if (currentMission.need.collect)
+      return player.collected >= (currentMission.need.collect || 0);
+    return (
+      standingOn === Tile.Crystal ||
+      standingOn === Tile.Terminal ||
+      player.collected > 0
+    );
   }
-  function frame(t: number) {
-    const dt = t - last;
-    last = t;
+  function frame(timestamp: number) {
+    const deltaMs = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
     if (playing) {
-      acc += dt * parseFloat(speed.value);
+      accumulatedMs += deltaMs * parseFloat(speedSlider.value);
       const interval = 150;
-      while (acc >= interval && qi < q.length) {
-        acc -= interval;
-        const a = q[qi++];
-        const msg = step(worldState.world, p, a);
-        if (msg.startsWith("hazard") || msg.startsWith("energy")) {
-          ed.log("ERR: " + msg);
+      while (accumulatedMs >= interval && queueIndex < queue.length) {
+        accumulatedMs -= interval;
+        const action = queue[queueIndex++];
+        const stepResult = step(worldState.world, player, action);
+        if (stepResult.startsWith("hazard") || stepResult.startsWith("energy")) {
+          editor.log("ERR: " + stepResult);
           playing = false;
-          p.state = "error";
+          player.state = "error";
           break;
         }
-        if (msg.startsWith("bump") || msg.startsWith("collect:")) {
-          ed.log("! " + msg);
+        if (stepResult.startsWith("bump") || stepResult.startsWith("collect:")) {
+          editor.log("! " + stepResult);
         }
       }
-      if (qi >= q.length && playing) {
+      if (queueIndex >= queue.length && playing) {
         playing = false;
         if (checkWin()) {
-          p.state = "success";
-          saveDone(cur.id);
-          const un = cur.unlock ?? UNLOCK_AFTER[cur.id];
-          win.classList.remove("hidden");
-          win.innerHTML = `<div style="background:#0d1330;padding:24px;border-radius:12px;text-align:center"><h2>SUCCESS ✓</h2><p>${cur.title} complete</p>${un ? `<p>🔓 Unlocked: ${un}</p>` : ""}<button id="wNext">NEXT →</button> <button id="wRe">REPLAY</button></div>`;
-          (document.getElementById("wNext") as HTMLButtonElement).onclick =
-            () => {
-              const i = MISSIONS.findIndex((m) => m.id === cur.id);
-              load(MISSIONS[Math.min(i + 1, MISSIONS.length - 1)].id);
-            };
-          (document.getElementById("wRe") as HTMLButtonElement).onclick = () =>
-            load(cur.id);
-        } else {
-          ed.log(
-            `✗ not yet: collected ${p.collected}, at (${p.x},${p.y}). Check objective + RESET and retry.`,
+          player.state = "success";
+          saveDone(currentMission.id);
+          showWin(
+            winOverlay,
+            currentMission.title,
+            unlockFor(currentMission),
+            () => load(nextMission(currentMission).id),
+            () => load(currentMission.id),
           );
-          p.state = "error";
+        } else {
+          editor.log(
+            `✗ not yet: collected ${player.collected}, at (${player.x},${player.y}). Check objective + RESET and retry.`,
+          );
+          player.state = "error";
         }
       }
     }
-    if (!playing && p.state === "walk") p.state = "idle";
-    showEnergy();
-    draw(ctx, worldState.world, p, t);
+    if (!playing && player.state === "walk") player.state = "idle";
+    renderEnergy(energyBadge, player.energy);
+    render(ctx, worldState.world, player, timestamp);
     requestAnimationFrame(frame);
   }
   load("01");

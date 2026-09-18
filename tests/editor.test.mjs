@@ -6,18 +6,18 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const out = "/tmp/nullworld-phase1";
-let editor, world, playerMod, executor;
+let editor, parse, playerMod, executor;
 
 before(() => {
   execSync(`npx tsc --noEmit false --outDir ${out}`, { cwd: root, stdio: "pipe" });
   return (async () => {
-    editor = await import(pathToFileURL(path.join(out, "ui/editor.js")).href);
-    world = await import(pathToFileURL(path.join(out, "game/world.js")).href);
+    editor = await import(pathToFileURL(path.join(out, "ui/highlight.js")).href);
+    parse = await import(pathToFileURL(path.join(out, "world/parse.js")).href);
     playerMod =
-      await import(pathToFileURL(path.join(out, "game/player.js")).href);
+      await import(pathToFileURL(path.join(out, "player/player.js")).href);
     executor =
       await import(
-        pathToFileURL(path.join(out, "scripting/executor.js")).href
+        pathToFileURL(path.join(out, "commands/executor.js")).href
       );
   })();
 });
@@ -48,21 +48,21 @@ test("completeWord finishes unique prefixes", () => {
 });
 
 test("runtime errors report the user line", () => {
-  const { world: w, start } = world.parseGrid(["R..*."]);
-  const p = playerMod.mkPlayer(start.x, start.y, 100);
-  const r = executor.runCode("moveRight();\nnope();", w, p);
-  assert.ok(r.error);
-  assert.equal(r.line, 2);
+  const { world: gameWorld, start } = parse.parseGrid(["R..*."]);
+  const player = playerMod.mkPlayer(start.x, start.y, 100);
+  const result = executor.runCode("moveRight();\nnope();", gameWorld, player);
+  assert.ok(result.error);
+  assert.equal(result.line, 2);
 });
 
 test("queue-cap errors carry no line", () => {
-  const { world: w, start } = world.parseGrid(["R..*."]);
-  const p = playerMod.mkPlayer(start.x, start.y, 100);
-  const r = executor.runCode(
+  const { world: gameWorld, start } = parse.parseGrid(["R..*."]);
+  const player = playerMod.mkPlayer(start.x, start.y, 100);
+  const result = executor.runCode(
     "for (let i = 0; i < 2000; i++) { moveRight(); }",
-    w,
-    p,
+    gameWorld,
+    player,
   );
-  assert.ok(r.error);
-  assert.equal(r.line, undefined);
+  assert.ok(result.error);
+  assert.equal(result.line, undefined);
 });
