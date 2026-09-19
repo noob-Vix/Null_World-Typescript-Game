@@ -2,6 +2,15 @@ import { Tile } from "./tile.js";
 import type { Action } from "../commands/types.js";
 import type { Player } from "../player/types.js";
 import type { World } from "./types.js";
+// A fatal step ends the run with an error. Bumps are fatal on purpose:
+// a loop that keeps moving must hit a wall or run dry, so every loop ends.
+export function endsRun(stepResult: string): boolean {
+  return (
+    stepResult.startsWith("bump") ||
+    stepResult.startsWith("hazard") ||
+    stepResult.startsWith("energy")
+  );
+}
 export function step(world: World, player: Player, action: Action): string {
   if (action.kind === "move") {
     const nextX = player.x + action.dx,

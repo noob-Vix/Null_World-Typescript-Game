@@ -1,4 +1,4 @@
-import { step } from "../world/step.js";
+import { endsRun, step } from "../world/step.js";
 import { tileName } from "../world/tile.js";
 import type { Player } from "../player/types.js";
 import type { World } from "../world/types.js";
@@ -16,7 +16,7 @@ export function makeApi(queue: Action[], world: World, player: Player): Api {
     queue.push(action);
     if (dead) return;
     const result = step(world, player, action);
-    if (result.startsWith("hazard") || result.startsWith("energy")) dead = true;
+    if (endsRun(result)) dead = true;
   };
   const look = (): Sense => ({
     here: at(world, player.x, player.y),

@@ -11,17 +11,37 @@ export function unlockFor(mission: Mission): string | undefined {
   return mission.unlock ?? UNLOCK_AFTER[mission.id];
 }
 const KEY = "nullworld-save";
-export function loadSave(): { completed: string[] } {
+export interface Save {
+  completed: string[];
+  terminals: string[];
+}
+function emptySave(): Save {
+  return { completed: [], terminals: [] };
+}
+export function loadSave(): Save {
   try {
-    return JSON.parse(localStorage.getItem(KEY) || '{"completed":[]}');
+    const parsed = JSON.parse(
+      localStorage.getItem(KEY) || '{"completed":[]}',
+    ) as Partial<Save>;
+    return {
+      completed: parsed.completed ?? [],
+      terminals: parsed.terminals ?? [],
+    };
   } catch {
-    return { completed: [] };
+    return emptySave();
   }
 }
 export function saveDone(id: string) {
   const save = loadSave();
   if (!save.completed.includes(id)) {
     save.completed.push(id);
+    localStorage.setItem(KEY, JSON.stringify(save));
+  }
+}
+export function saveTerminalDone(id: string) {
+  const save = loadSave();
+  if (!save.terminals.includes(id)) {
+    save.terminals.push(id);
     localStorage.setItem(KEY, JSON.stringify(save));
   }
 }

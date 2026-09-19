@@ -1,11 +1,23 @@
 import { Tile } from "./tile.js";
 import type { Player } from "../player/types.js";
 import type { World } from "./types.js";
+// Manhattan distance: the flashlight around the robot. No radius = full map.
+export function isVisible(
+  x: number,
+  y: number,
+  playerX: number,
+  playerY: number,
+  radius?: number,
+): boolean {
+  if (radius === undefined) return true;
+  return Math.abs(x - playerX) + Math.abs(y - playerY) <= radius;
+}
 export function render(
   ctx: CanvasRenderingContext2D,
   world: World,
   player: Player,
   time: number,
+  viewRadius?: number,
 ) {
   const cellWidth = ctx.canvas.width / world.width,
     cellHeight = ctx.canvas.height / world.height;
@@ -13,6 +25,11 @@ export function render(
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   for (let y = 0; y < world.height; y++)
     for (let x = 0; x < world.width; x++) {
+      if (!isVisible(x, y, player.x, player.y, viewRadius)) {
+        ctx.fillStyle = "#05070f";
+        ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+        continue;
+      }
       const tile = world.tiles[y][x];
       ctx.fillStyle = "#0d1330";
       ctx.fillRect(x * cellWidth + 1, y * cellHeight + 1, cellWidth - 2, cellHeight - 2);

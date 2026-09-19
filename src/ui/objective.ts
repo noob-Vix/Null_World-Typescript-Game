@@ -1,8 +1,15 @@
-import type { Mission } from "../manager/types.js";
+export interface ObjectiveInfo {
+  id: string;
+  title: string;
+  briefing: string;
+  difficulty: string;
+  tags: string[];
+  hint: string;
+}
 export function renderObjective(
   element: HTMLElement,
-  mission: Mission,
+  info: ObjectiveInfo,
   unlocked: string[],
 ) {
-  element.innerHTML = `<b>${mission.id} — ${mission.title}</b><br/>${mission.briefing}<br/><i>Hint: ${mission.hint}</i><br/>Unlocked: ${unlocked.join(", ") || "commands"}`;
+  element.innerHTML = `<b>${info.id} — ${info.title}</b> <span class="diff-${info.difficulty}">${info.difficulty}</span><br/>${info.briefing}<br/><i>Hint: ${info.hint}</i><br/>Tags: ${info.tags.join(", ")}<br/>Unlocked: ${unlocked.join(", ") || "commands"}`;
 }

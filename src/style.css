@@ -39,6 +39,16 @@ header {
 #missionTabs button:disabled {
   opacity: 0.35;
 }
+.tabsLabel {
+  color: #5a6aa8;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+#terminalTabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
 main {
   display: grid;
   grid-template-columns: 520px 1fr;
@@ -139,6 +149,18 @@ canvas {
 .errLine {
   background: rgba(255, 59, 92, 0.35);
   color: #fff;
+}
+.diff-easy {
+  color: var(--grn);
+  font-weight: 700;
+}
+.diff-medium {
+  color: #ffd479;
+  font-weight: 700;
+}
+.diff-hard {
+  color: var(--red);
+  font-weight: 700;
 }
 .console {
   min-height: 80px;

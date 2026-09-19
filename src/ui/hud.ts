@@ -1,4 +1,5 @@
 import { MISSIONS } from "../manager/missions.js";
+import { TERMINALS } from "../manager/terminals.js";
 export function renderTabs(
   element: HTMLElement,
   currentId: string,
@@ -34,4 +35,20 @@ export function showWin(
 }
 export function hideWin(element: HTMLElement) {
   element.classList.add("hidden");
+}
+export function renderTerminalTabs(
+  element: HTMLElement,
+  currentId: string,
+  completedIds: string[],
+  onSelect: (id: string) => void,
+) {
+  void currentId;
+  element.innerHTML = "";
+  TERMINALS.forEach((terminal) => {
+    const button = document.createElement("button");
+    button.textContent = `${terminal.id}${completedIds.includes(terminal.id) ? " ✓" : ""}`;
+    button.title = `${terminal.title} (${terminal.difficulty})`;
+    button.onclick = () => onSelect(terminal.id);
+    element.appendChild(button);
+  });
 }

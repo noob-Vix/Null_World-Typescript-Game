@@ -3,6 +3,7 @@ import type { Player } from "../player/types.js";
 import type { World } from "../world/types.js";
 import type { Action, RunResult } from "./types.js";
 import { makeApi } from "./commands.js";
+import { stripTypes } from "./strip-types.js";
 // V8 reports the failing line as <anonymous>:N where N counts lines of the
 // synthesized function source (signature + preamble + user code). Instead of
 // hardcoding that layout, calibrate once: a probe thrown on user line 1
@@ -17,9 +18,6 @@ function probeOffset(): number | undefined {
   return undefined;
 }
 const LINE_OFFSET = probeOffset();
-export function stripTypes(code: string): string {
-  return code.replace(/:\s*(number|string|boolean|void|any)\b/g, "");
-}
 // NOTE: bare `energy` in user code is the value at RUN time (a snapshot).
 // Live energy during the program is available as sense().energy, which reads
 // the shadow simulation. Full statement-level interleaving is a LATER goal.
